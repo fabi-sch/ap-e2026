@@ -5,10 +5,35 @@ import APL.Eval (Val (..), envEmpty, eval)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
 
+-- -- Consider this example when you have added the necessary constructors.
+-- -- The Y combinator in a form suitable for strict evaluation.
+-- yComb :: Exp
+-- yComb =
+--   Lambda "f" $
+--     Apply
+--       (Lambda "g" (Apply (Var "g") (Var "g")))
+--       ( Lambda
+--           "g"
+--           ( Apply
+--               (Var "f")
+--               (Lambda "a" (Apply (Apply (Var "g") (Var "g")) (Var "a")))
+--           )
+--       )
+
+-- fact :: Exp
+-- fact =
+--   Apply yComb $
+--     Lambda "rec" $
+--       Lambda "n" $
+--         If
+--           (Eql (Var "n") (CstInt 0))
+--           (CstInt 1)
+--           (Mul (Var "n") (Apply (Var "rec") (Sub (Var "n") (CstInt 1))))
+
 tests :: TestTree
 tests =
   testGroup
-    "EValuation"
+    "Evaluation"
     [ testCase "Add" $
         eval envEmpty (Add (CstInt 2) (CstInt 5))
           @?= Right (ValInt 7),
