@@ -95,4 +95,22 @@ eval env (ForLoop (p, initial) (i, bound) body) =
                   Right _ -> Left "Non-integral body"
         Right _ -> Left "Non-integral bound"
     Right _ -> Left "Non-integral initial"
+
+eval env (Lambda var e) =
+  Right (ValFun env var e)
+
+eval env (Apply e1 e2) = do
+  func <- eval env e1 -- we get env2 from return of this
+  arg <- eval env e2
+  case func of
+    (ValFun env2 var e) -> eval (envExtend var arg env2) e
+    _ -> Left "Not a function"
+
+
+eval env (TryCatch e1 e2) = 
+  case eval env e1 of
+    Right x -> Right x
+    Left _ -> eval env e2
+    
+
     

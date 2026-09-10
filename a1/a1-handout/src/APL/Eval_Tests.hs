@@ -155,5 +155,42 @@ tests =
         eval
           envEmpty
           (ForLoop ("p", CstInt 7) ("i", CstInt (-3)) (Add (Var "p") (Var "i")))
-          @?= Right (ValInt 7)
+          @?= Right (ValInt 7),
+          --
+          -- TODO - add more
+
+      testCase "Function Right" $
+        eval envEmpty (Apply (Let "x" (CstInt 2) (Lambda "y" (Add (Var "x") (Var "y")))) (CstInt 3)) @?= Right (ValInt 5),
+
+
+      testCase "Function Left" $
+        eval envEmpty (Apply (Add (CstInt 3) (CstInt 4)) (CstInt 3)) @?= Left "Not a function",
+
+
+      testCase "Function 1st param error" $
+        eval envEmpty (Apply (Var "x") (CstInt 3)) @?= Left "Unknown variable: x",
+
+
+      testCase "Function 2nd param error" $
+        eval envEmpty (Apply (Let "x" (CstInt 2) (Lambda "y" (Add (Var "x") (Var "y")))) (Var "x")) @?= Left "Unknown variable: x",
+
+
+      testCase "Function (Shadowing)" $
+        eval envEmpty (Let "x" (CstInt 10) (Apply (Lambda "x" (Var "x")) (CstInt 5))) @?= Right (ValInt 5),
+
+
+      
+      testCase "TryCatch e1" $
+        eval envEmpty ( TryCatch (CstInt 0) (Var "x")) @?= Right (ValInt 0),
+
+
+      
+      testCase "TryCatch e2" $
+        eval envEmpty ( TryCatch (Var " missing ") (CstInt 1)) @?= Right (ValInt 1),
+
+
+      
+      testCase "TryCatch e2 fail" $
+        eval envEmpty ( TryCatch (Var "x")(Var "y")) @?= Left "Unknown variable: y"
+    
     ]
