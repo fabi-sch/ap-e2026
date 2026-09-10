@@ -11,6 +11,7 @@ import APL.AST (Exp (..), VName)
 data Val
   = ValInt Integer
   | ValBool Bool
+  | ValFun Env VName Exp
   deriving (Eq, Show)
 
 type Env = [(VName, Val)]

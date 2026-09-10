@@ -8,7 +8,79 @@ tests :: TestTree
 tests =
   testGroup
     "Prettyprinting"
-    [ testCase "Add" $
-        printExp (Add (CstInt 2) (CstInt 5))
-              @?= "(2 + 5)"
+    [ testCase "CstInt" $
+        printExp (CstInt 5)
+          @?= "5",
+      --
+      testCase "CstBool true" $
+        printExp (CstBool True)
+          @?= "true",
+      --
+      testCase "CstBool false" $
+        printExp (CstBool False)
+          @?= "false",
+      --
+      testCase "Var" $
+        printExp (Var "x")
+          @?= "x",
+      --
+      testCase "Sub" $
+        printExp (Sub (CstInt 5) (CstInt 2))
+          @?= "(5 - 2)",
+      --
+      testCase "Mul" $
+        printExp (Mul (CstInt 3) (CstInt 4))
+          @?= "(3 * 4)",
+      --
+      testCase "Div" $
+        printExp (Div (CstInt 10) (CstInt 2))
+          @?= "(10 / 2)",
+      --
+      testCase "Pow" $
+        printExp (Pow (CstInt 2) (CstInt 3))
+          @?= "(2 ** 3)",
+      --
+      testCase "Eql" $
+        printExp (Eql (CstInt 1) (CstInt 1))
+          @?= "(1 == 1)",
+      --
+      testCase "If" $
+        printExp (If (CstBool True) (CstInt 1) (CstInt 2))
+          @?= "(if true then 1 else 2)",
+      --
+      testCase "Let" $
+        printExp (Let "x" (CstInt 1) (Var "x"))
+          @?= "(let x = 1 in x)",
+      --
+      testCase "ForLoop" $
+        printExp (ForLoop ("p", CstInt 0) ("i", CstInt 10) (Add (Var "p") (Var "i")))
+          @?= "(loop p = 0 for i < 10 do (p + i))",
+      --
+      testCase "Nested expressions" $
+        printExp (Add (Mul (CstInt 2) (CstInt 3)) (CstInt 4))
+          @?= "((2 * 3) + 4)",
+      --
+      testCase "Lambda" $
+        printExp (Lambda "x" (Add (Var "x") (CstInt 1)))
+          @?= "(\\x -> (x + 1))",
+      --
+      testCase "Apply atomic args" $
+        printExp (Apply (Var "f") (CstInt 5))
+          @?= "(f 5)",
+      --
+      testCase "Apply needs parens around function part" $
+        printExp (Apply (Lambda "x" (Var "x")) (CstInt 1))
+          @?= "((\\x -> x) 1)",
+      --
+      testCase "Apply needs parens around argument" $
+        printExp (Apply (Var "f") (Add (CstInt 1) (CstInt 2)))
+          @?= "(f (1 + 2))",
+      --
+      testCase "Nested Apply (function part is Apply)" $
+        printExp (Apply (Apply (Var "f") (Var "x")) (Var "y"))
+          @?= "((f x) y)",
+      --
+      testCase "TryCatch" $
+        printExp (TryCatch (Div (CstInt 1) (CstInt 0)) (CstInt (-1)))
+          @?= "(try (1 / 0) catch -1)"
     ]
