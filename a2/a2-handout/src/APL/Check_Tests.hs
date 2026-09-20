@@ -23,4 +23,23 @@ tests :: TestTree
 tests =
   testGroup
     "Checking"
-    []
+    [ testPos (CstInt 2),
+      testNeg (Var "x"),
+      testPos (Lambda "x" (Var "x")),
+      testPos (Let "x" (CstInt 2) (Var "x")),
+      testNeg (Let "x" (Var "x") (CstInt 1)),
+      testPos
+        ( ForLoop
+            ("p", CstInt 0)
+            ("i", CstInt 10)
+            (Add (Var "p") (Var "i"))
+        ),
+      testNeg
+        ( ForLoop
+            ("p", CstInt 0)
+            ("i", CstInt 10)
+            (Var "j")
+        ),
+      testPos (Apply (Lambda "x" (Var "x")) (CstInt 4)),
+      testNeg (Add (CstInt 1) (Var "y"))
+    ]

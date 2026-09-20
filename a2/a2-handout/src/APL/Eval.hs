@@ -3,7 +3,6 @@ module APL.Eval
     eval,
     runEval,
     Error,
-    State,
   )
 where
 
