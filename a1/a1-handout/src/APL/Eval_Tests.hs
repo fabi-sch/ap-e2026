@@ -227,5 +227,9 @@ tests =
       --
       testCase "Factorial via Y combinator" $
         eval envEmpty (Apply fact (CstInt 5))
-          @?= Right (ValInt 120)
+          @?= Right (ValInt 120),
+      --
+      testCase "Apply evaluates function before argument" $
+        eval envEmpty (Apply (Var "f") (Var "g"))
+          @?= Left "Unknown variable: f"
     ]
