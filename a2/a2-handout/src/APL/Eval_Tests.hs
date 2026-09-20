@@ -1,11 +1,11 @@
 module APL.Eval_Tests (tests) where
 
 import APL.AST (Exp (..))
-import APL.Eval (State, Error, Val (..), eval, runEval)
+import APL.Eval (Error, Val (..), eval, runEval)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, (@?=))
 
-eval' :: Exp -> (State, Either Error Val)
+eval' :: Exp -> ([String], Either Error Val)
 eval' = runEval . eval
 
 evalTests :: TestTree
@@ -132,7 +132,41 @@ kvTests :: TestTree
 kvTests =
   testGroup
     "Task 2: Key-value store"
-    []
+    [ testCase "KvPut (returns stored value)" $
+        eval' (KvPut (CstInt 0) (CstBool True))
+          @?= ([], Right (ValBool True)),
+      --
+      testCase "KvPut/KvGet" $
+        eval'
+          ( Let
+              "x"
+              (KvPut (CstInt 0) (CstBool True))
+              (KvGet (CstInt 0))
+          )
+          @?= ([], Right (ValBool True)),
+      --
+      testCase "KvGet (missing key)" $
+        eval'
+          ( Let
+              "x"
+              (KvPut (CstInt 0) (CstBool True))
+              (KvGet (CstInt 1))
+          )
+          @?= ([], Left "Invalid key: ValInt 1"),
+      --
+      testCase "KvPut (overwrite)" $
+        eval'
+          ( Let
+              "x"
+              (KvPut (CstInt 0) (CstBool True))
+              ( Let
+                  "y"
+                  (KvPut (CstInt 0) (CstBool False))
+                  (KvGet (CstInt 0))
+              )
+          )
+          @?= ([], Right (ValBool False))
+    ]
 
 tests :: TestTree
 tests = testGroup "Evaluation" [evalTests, printTests, kvTests]
