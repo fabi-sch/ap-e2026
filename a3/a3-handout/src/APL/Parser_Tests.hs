@@ -58,6 +58,17 @@ tests =
           parserTestFail "x if x then y else z"
         ],
       testGroup
+        "Equality and power operations"
+        [ parserTest "x*y**z" $ Mul (Var "x") (Pow (Var "y") (Var "z")),
+          parserTest "x+y==y+x" $ Eql (Add (Var "x") (Var "y")) (Add (Var "y") (Var "x")),
+          parserTest "x*y**z+t" $ Add (Mul (Var "x") (Pow (Var "y") (Var "z"))) (Var "t"),
+          parserTest "x*y**(z+t)" $ Mul (Var "x") (Pow (Var "y") (Add (Var "z") (Var "t"))),
+          parserTest "x**y**z" $ Pow (Var "x") (Pow (Var "y") (Var "z")),
+          parserTest "x==y==z" $ Eql (Eql (Var "x") (Var "y")) (Var "z"),
+          parserTest "x**y*z" $ Mul (Pow (Var "x") (Var "y")) (Var "z"),
+          parserTest "x+y*z==w" $ Eql (Add (Var "x") (Mul (Var "y") (Var "z"))) (Var "w")
+        ],
+      testGroup
         "Print, put and get operations"
         [ parserTest "put x y" $ KvPut (Var "x") (Var "y"),
           parserTest "get x + y" $ Add (KvGet (Var "x")) (Var "y"),
