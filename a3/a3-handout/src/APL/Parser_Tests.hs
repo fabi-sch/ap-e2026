@@ -58,6 +58,20 @@ tests =
           parserTestFail "x if x then y else z"
         ],
       testGroup
+        "Print, put and get operations"
+        [ parserTest "put x y" $ KvPut (Var "x") (Var "y"),
+          parserTest "get x + y" $ Add (KvGet (Var "x")) (Var "y"),
+          parserTest "getx" $ Var "getx",
+          parserTest "print \"foo\" x" $ Print "foo" (Var "x"),
+          parserTest "print \"hello world\" x" $ Print "hello world" (Var "x"),
+          parserTest "print \"\" x" $ Print "" (Var "x"),
+          parserTest "get (x + y)" $ KvGet (Add (Var "x") (Var "y")),
+          parserTest "put x (y + z)" $ KvPut (Var "x") (Add (Var "y") (Var "z")),
+          parserTestFail "get",
+          parserTestFail "put x",
+          parserTestFail "print x"
+        ],
+      testGroup
         "Conditional expressions"
         [ parserTest "if x then y else z" $ If (Var "x") (Var "y") (Var "z"),
           parserTest "if x then y else if x then y else z" $

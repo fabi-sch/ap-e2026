@@ -52,6 +52,9 @@ lInteger =
 lString :: String -> Parser ()
 lString s = lexeme $ void $ chunk s
 
+pString :: Parser String
+pString = lexeme $ chunk "\"" *> many (satisfy (/= '"')) <* chunk "\""
+
 lKeyword :: String -> Parser ()
 lKeyword s = lexeme $ void $ try $ chunk s <* notFollowedBy (satisfy isAlphaNum)
 
@@ -78,6 +81,17 @@ pLExp =
         <$> (lKeyword "if" *> pExp)
         <*> (lKeyword "then" *> pExp)
         <*> (lKeyword "else" *> pExp),
+
+      Print
+        <$> (lKeyword "print" *> pString)
+        <*> pAtom,
+
+      KvGet
+        <$> (lKeyword "get" *> pAtom),
+
+      KvPut
+        <$> (lKeyword "put" *> pAtom)
+        <*> pAtom,
       pFExp
     ]
 
