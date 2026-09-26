@@ -33,7 +33,14 @@ keywords =
     "false",
     "print",
     "get",
-    "put"
+    "put",
+    "in",
+    "loop",
+    "for",
+    "do",
+    "try",
+    "catch",
+    "let"
   ]
 
 lVName :: Parser VName
@@ -52,8 +59,8 @@ lInteger =
 lString :: String -> Parser ()
 lString s = lexeme $ void $ chunk s
 
-pString :: Parser String
-pString = lexeme $ chunk "\"" *> many (satisfy (/= '"')) <* chunk "\""
+lStringLit :: Parser String
+lStringLit = lexeme $ chunk "\"" *> many (satisfy (/= '"')) <* chunk "\""
 
 lKeyword :: String -> Parser ()
 lKeyword s = lexeme $ void $ try $ chunk s <* notFollowedBy (satisfy isAlphaNum)
@@ -83,7 +90,7 @@ pLExp =
         <*> (lKeyword "else" *> pExp),
 
       Print
-        <$> (lKeyword "print" *> pString)
+        <$> (lKeyword "print" *> lStringLit)
         <*> pAtom,
 
       KvGet
@@ -92,9 +99,29 @@ pLExp =
       KvPut
         <$> (lKeyword "put" *> pAtom)
         <*> pAtom,
+
+      Let
+        <$> (lKeyword "let" *> lVName)
+        <*> (lString "=" *> pExp)
+        <*> (lKeyword "in" *> pExp),
+
+      do
+          v1 <- (lKeyword "loop" *> lVName)
+          e1 <- (lString "=" *> pExp)
+          v2 <- (lKeyword "for" *> lVName)
+          e2 <- (lString "<" *> pExp)
+          e3 <- (lKeyword "do" *> pExp)
+          pure $ ForLoop (v1, e1) (v2, e2) e3,
+
+      TryCatch
+        <$> (lKeyword "try" *> pExp)
+        <*> (lKeyword "catch" *> pExp),
+
+      Lambda
+        <$> (lString "\\" *> lVName)
+        <*> (lString "->" *> pExp),
       pFExp
     ]
-
 
 pFExp :: Parser Exp
 pFExp = pAtom >>= chain
@@ -118,8 +145,6 @@ pExp2 = pLExp >>= chain
             chain $ Pow x y,
           pure x
         ]
-
-
 
 pExp1 :: Parser Exp
 pExp1 = pExp2 >>= chain
@@ -158,10 +183,10 @@ pExp_1 = pExp0 >>= chain
   where
     chain x = 
       choice
-      [do
-        lString "=="
-        y <- pExp0
-        chain $ Eql x y,
+      [ do
+          lString "=="
+          y <- pExp0
+          chain $ Eql x y,
         pure x        
       ]
 

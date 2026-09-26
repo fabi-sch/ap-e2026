@@ -83,6 +83,41 @@ tests =
           parserTestFail "print x"
         ],
       testGroup
+        "Lambdas, let-binding, loops and try-catch"
+        [ parserTest "let x = y in z" $ Let "x" (Var "y") (Var "z"),
+          parserTest "let x =y in z" $ Let "x" (Var "y") (Var "z"),
+          parserTest "let x = y in z + 1" $ Let "x" (Var "y") (Add (Var "z") (CstInt 1)),
+          parserTest "let x = 1 in let y = 2 in x + y" $
+            Let "x" (CstInt 1) $
+              Let "y" (CstInt 2) (Add (Var "x") (Var "y")),
+          parserTest "(let x = y in z) + 1" $ Add (Let "x" (Var "y") (Var "z")) (CstInt 1),
+          parserTest "letx" $ Var "letx",
+          parserTestFail "let true = y in z",
+          parserTestFail "x let v = 2 in v",
+          parserTestFail "let",
+          parserTestFail "let x = y",
+          parserTest "\\x -> x + x" $ Lambda "x" (Add (Var "x") (Var "x")),
+          parserTest "(\\x -> x) + x" $ Add (Lambda "x" (Var "x")) (Var "x"),
+          parserTest "(\\x -> x) y" $ Apply (Lambda "x" (Var "x")) (Var "y"),
+          parserTest "\\x -> \\y -> x y" $ Lambda "x" (Lambda "y" (Apply (Var "x") (Var "y"))),
+          parserTestFail "\\true -> x",
+          parserTestFail "\\x x",
+          parserTest "try x catch y" $ TryCatch (Var "x") (Var "y"),
+          parserTest "try x + 1 catch y + 1" $
+            TryCatch (Add (Var "x") (CstInt 1)) (Add (Var "y") (CstInt 1)),
+          parserTest "try try x catch y catch z" $
+            TryCatch (TryCatch (Var "x") (Var "y")) (Var "z"),
+          parserTest "tryx" $ Var "tryx",
+          parserTestFail "try x",
+          parserTest "loop x = 1 for i < n do x * 2" $
+            ForLoop ("x", CstInt 1) ("i", Var "n") (Mul (Var "x") (CstInt 2)),
+          parserTest "loop x = y + 1 for i < 10 do x + i" $
+            ForLoop ("x", Add (Var "y") (CstInt 1)) ("i", CstInt 10) (Add (Var "x") (Var "i")),
+          parserTest "loopy" $ Var "loopy",
+          parserTestFail "loop for = 1 for i < n do x",
+          parserTestFail "loop x = 1 for i < n"
+        ],
+      testGroup
         "Conditional expressions"
         [ parserTest "if x then y else z" $ If (Var "x") (Var "y") (Var "z"),
           parserTest "if x then y else if x then y else z" $
