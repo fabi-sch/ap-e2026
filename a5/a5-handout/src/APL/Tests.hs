@@ -3,6 +3,7 @@ module APL.Tests
   )
 where
 
+import APL.Eval (eval, runEval)
 import APL.Parser (parseAPL)
 import APL.AST (Exp (..), subExp, VName, printExp)
 import APL.Error (isVariableError, isDomainError, isTypeError)
@@ -57,20 +58,26 @@ genVar = do
     n <- chooseInt (1, 3)
     alpha <- elements ['a' .. 'z']
     alphaNums <- vectorOf n $ elements $ ['a' .. 'z'] ++ ['0' .. '9']
-    pure (alpha : alphaNums)
+    let v = alpha : alphaNums
+    let keywords = ["if", "then", "else", "true", "false", "let", "in", "try", "catch"]
+    
+    if v `elem` keywords
+      then genVar
+      else pure v
+
 
 
 genExp :: [VName] -> Int -> Gen Exp
 genExp env 0 = oneof [CstInt . abs <$> arbitrary, CstBool <$> arbitrary]
 genExp env size =
   frequency $
-    [(200, Var <$> elements env) | not (null env)]++
+    [(50, Var <$> elements env) | not (null env)]++
     [ (3, CstInt . abs <$> arbitrary)
     , (3, CstBool <$> arbitrary)
     , (3, Add <$> genExp env halfSize <*> genExp env halfSize)
-    , (2, Add <$> genExp env halfSize <*> (CstBool <$> arbitrary))
+    , (1, Add <$> genExp env halfSize <*> (CstBool <$> arbitrary))
     , (3, Sub <$> genExp env halfSize <*> genExp env halfSize)
-    , (2, Sub <$> genExp env halfSize <*> (CstBool <$> arbitrary))
+    , (1, Sub <$> genExp env halfSize <*> (CstBool <$> arbitrary))
     , (3, Mul <$> genExp env halfSize <*> genExp env halfSize)
     , (1, Mul <$> genExp env halfSize <*> (CstBool <$> arbitrary))
     , (3, Div <$> genExp env halfSize <*> genExp env halfSize)
@@ -78,11 +85,11 @@ genExp env size =
     , (1, Div <$> genExp env halfSize <*> (CstBool <$> arbitrary))
     , (3, Pow <$> genExp env halfSize <*> genExp env halfSize)
     , (4, Pow <$> genExp env halfSize <*> pure (Sub (CstInt 0) (CstInt 1)))
-    , (3, Pow <$> genExp env halfSize <*> (CstBool <$> arbitrary))
+    , (1, Pow <$> genExp env halfSize <*> (CstBool <$> arbitrary))
     , (3, Eql <$> genExp env halfSize <*> genExp env halfSize)
-    , (3, Eql <$> genExp env halfSize <*> (CstBool <$> arbitrary))
+    , (1, Eql <$> genExp env halfSize <*> (CstBool <$> arbitrary))
     , (3, If <$> genExp env thirdSize <*> genExp env thirdSize <*> genExp env thirdSize)
-    , (2, If <$> (CstInt . abs <$> arbitrary) <*> genExp env thirdSize <*> genExp env thirdSize)
+    , (1, If <$> (CstInt . abs <$> arbitrary) <*> genExp env thirdSize <*> genExp env thirdSize)
     , (1, Var <$> genVar `suchThat` (`notElem` env))
     , (5, do
             v <- genVar
@@ -117,7 +124,9 @@ parsePrinted :: Exp -> Property
 parsePrinted s = parseAPL "" (printExp s) === Right s
 
 onlyCheckedErrors :: Exp -> Bool
-onlyCheckedErrors _ = undefined
+onlyCheckedErrors s = case runEval (eval s) of
+  Left err -> err `elem` checkExp s
+  Right _  -> True
 
 -- The number of tests is part of the specification of this test suite: some of
 -- these properties fail only rarely.  Do not reduce it.
