@@ -3,7 +3,8 @@ module APL.Tests
   )
 where
 
-import APL.AST (Exp (..), subExp, VName)
+import APL.Parser (parseAPL)
+import APL.AST (Exp (..), subExp, VName, printExp)
 import APL.Error (isVariableError, isDomainError, isTypeError)
 import APL.Check (checkExp)
 import Test.QuickCheck
@@ -21,6 +22,7 @@ import Test.QuickCheck
   , elements
   , chooseInt
   , vectorOf
+  , (===)
   )
 
 instance Arbitrary Exp where
@@ -50,12 +52,20 @@ instance Arbitrary Exp where
     e1 : e2 : [TryCatch e1' e2 | e1' <- shrink e1] ++ [TryCatch e1 e2' | e2' <- shrink e2]
   shrink _ = []
 
+genVar :: Gen VName
+genVar = do
+    n <- chooseInt (1, 3)
+    alpha <- elements ['a' .. 'z']
+    alphaNums <- vectorOf n $ elements $ ['a' .. 'z'] ++ ['0' .. '9']
+    pure (alpha : alphaNums)
+
+
 genExp :: [VName] -> Int -> Gen Exp
-genExp env 0 = oneof [CstInt <$> arbitrary, CstBool <$> arbitrary]
+genExp env 0 = oneof [CstInt . abs <$> arbitrary, CstBool <$> arbitrary]
 genExp env size =
   frequency $
     [(200, Var <$> elements env) | not (null env)]++
-    [ (3, CstInt <$> arbitrary)
+    [ (3, CstInt . abs <$> arbitrary)
     , (3, CstBool <$> arbitrary)
     , (3, Add <$> genExp env halfSize <*> genExp env halfSize)
     , (2, Add <$> genExp env halfSize <*> (CstBool <$> arbitrary))
@@ -67,22 +77,20 @@ genExp env size =
     , (4, Div <$> genExp env halfSize <*> pure (CstInt 0))
     , (1, Div <$> genExp env halfSize <*> (CstBool <$> arbitrary))
     , (3, Pow <$> genExp env halfSize <*> genExp env halfSize)
-    , (4, Pow <$> genExp env halfSize <*> pure (CstInt (-1)))
+    , (4, Pow <$> genExp env halfSize <*> pure (Sub (CstInt 0) (CstInt 1)))
     , (3, Pow <$> genExp env halfSize <*> (CstBool <$> arbitrary))
     , (3, Eql <$> genExp env halfSize <*> genExp env halfSize)
     , (3, Eql <$> genExp env halfSize <*> (CstBool <$> arbitrary))
     , (3, If <$> genExp env thirdSize <*> genExp env thirdSize <*> genExp env thirdSize)
-    , (2, If <$> (CstInt <$> arbitrary) <*> genExp env thirdSize <*> genExp env thirdSize)
-    , (1, Var <$> arbitrary `suchThat` (`notElem` env))
+    , (2, If <$> (CstInt . abs <$> arbitrary) <*> genExp env thirdSize <*> genExp env thirdSize)
+    , (1, Var <$> genVar `suchThat` (`notElem` env))
     , (5, do
-            n <- chooseInt (2, 4)
-            v <- vectorOf n arbitrary
+            v <- genVar
             let newEnv = v : env
             body <- genExp newEnv (size - 1)
             pure (Lambda v body))
     , (5, do
-            n <- chooseInt (2, 4)
-            v <- vectorOf n arbitrary
+            v <- genVar
             let newEnv = v : env
             e1 <- genExp env halfSize
             e2 <- genExp newEnv halfSize
@@ -105,8 +113,8 @@ expCoverage e = checkCoverage
   . cover 50 (or [2 <= n && n <= 4 | Var v <- subExp e, let n = length v]) "non-trivial variable"
   $ ()
 
-parsePrinted :: Exp -> Bool
-parsePrinted _ = undefined
+parsePrinted :: Exp -> Property
+parsePrinted s = parseAPL "" (printExp s) === Right s
 
 onlyCheckedErrors :: Exp -> Bool
 onlyCheckedErrors _ = undefined
